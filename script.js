@@ -1,4 +1,4 @@
-        var accessToken;
+var accessToken;
         var framedImageBlob;
 
         // Initialize Facebook SDK
@@ -75,7 +75,6 @@
                 return;
             }
 
-            // Restrict to JPEG/PNG
             const file = input.files[0];
             if (!file.type.match('image/jpeg|image/png')) {
                 alert('Please select a JPEG or PNG image.');
@@ -87,8 +86,7 @@
             frameImage.src = 'frame.png'; // Replace with your frame image URL
 
             userImage.onload = function() {
-                // Resize canvas to a reasonable size to avoid large files
-                const maxSize = 1024; // Max width/height
+                const maxSize = 1024;
                 let width = userImage.width;
                 let height = userImage.height;
                 if (width > height && width > maxSize) {
@@ -105,7 +103,6 @@
 
                 frameImage.onload = function() {
                     ctx.drawImage(frameImage, 0, 0, width, height);
-                    // Ensure Blob is created before proceeding
                     canvas.toBlob(function(blob) {
                         if (!blob || blob.size === 0) {
                             alert('Failed to create image Blob. Please try again.');
@@ -152,7 +149,7 @@
                             return;
                         }
                         var albumId = album.id;
-                        uploadPhoto(albumId);
+                        uploadPhoto(albumId, framedImageBlob, 'framed_image.jpg');
                     } else {
                         alert('Error fetching albums: ' + JSON.stringify(response.error));
                     }
@@ -164,7 +161,7 @@
         function uploadOriginalFile() {
             const input = document.getElementById('photo-input');
             if (!input.files || !input.files[0]) {
-                alert('Please select an image.');
+                alert('Please select an image before uploading.');
                 return;
             }
 
@@ -179,6 +176,8 @@
                 return;
             }
 
+            console.log('Selected file:', file.name, 'size:', file.size / 1024, 'KB', 'type:', file.type);
+
             checkLoginStatus(function() {
                 FB.api('/me/albums', 'GET', { access_token: accessToken }, function(response) {
                     if (response && !response.error) {
@@ -189,7 +188,7 @@
                             return;
                         }
                         var albumId = album.id;
-                        uploadPhotoOriginal(albumId, file);
+                        uploadPhoto(albumId, file, 'original_image.jpg');
                     } else {
                         alert('Error fetching albums: ' + JSON.stringify(response.error));
                     }
@@ -209,7 +208,7 @@
                 function(response) {
                     if (response && !response.error) {
                         var albumId = response.id;
-                        uploadPhoto(albumId);
+                        uploadPhoto(albumId, framedImageBlob, 'framed_image.jpg');
                     } else {
                         alert('Error creating album: ' + JSON.stringify(response.error));
                     }
@@ -229,7 +228,7 @@
                 function(response) {
                     if (response && !response.error) {
                         var albumId = response.id;
-                        uploadPhotoOriginal(albumId, file);
+                        uploadPhoto(albumId, file, 'original_image.jpg');
                     } else {
                         alert('Error creating album: ' + JSON.stringify(response.error));
                     }
@@ -237,50 +236,35 @@
             );
         }
 
-        // Upload framed photo
-        function uploadPhoto(albumId) {
-            var formData = new FormData();
-            formData.append('source', framedImageBlob, 'framed_image.jpg');
+        // Upload photo using fetch
+        function uploadPhoto(albumId, fileOrBlob, fileName) {
+            if (!(fileOrBlob instanceof Blob)) {
+                alert('Invalid file type. Please select a valid image.');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('source', fileOrBlob, fileName);
             formData.append('access_token', accessToken);
 
-            console.log('Uploading framed image, Blob size:', framedImageBlob.size / 1024, 'KB');
+            console.log('Uploading image:', fileName, 'size:', fileOrBlob.size / 1024, 'KB', 'type:', fileOrBlob.type);
 
-            FB.api(
-                '/' + albumId + '/photos',
-                'POST',
-                formData,
-                function(response) {
-                    if (!response || response.error) {
-                        alert('Error uploading photo: ' + JSON.stringify(response.error));
+            fetch(`https://graph.facebook.com/v20.0/${albumId}/photos`, {
+                method: 'POST',
+                body: formData
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        alert('Error uploading photo: ' + JSON.stringify(data.error));
                     } else {
-                        alert('Photo uploaded successfully! Post ID: ' + response.id);
-                        setProfilePicture(response.id);
+                        alert('Photo uploaded successfully! Post ID: ' + data.id);
+                        setProfilePicture(data.id);
                     }
-                }
-            );
-        }
-
-        // Upload original photo (no frame) for testing
-        function uploadPhotoOriginal(albumId, file) {
-            var formData = new FormData();
-            formData.append('source', file, 'original_image.jpg');
-            formData.append('access_token', accessToken);
-
-            console.log('Uploading original image, file size:', file.size / 1024, 'KB');
-
-            FB.api(
-                '/' + albumId + '/photos',
-                'POST',
-                formData,
-                function(response) {
-                    if (!response || response.error) {
-                        alert('Error uploading original photo: ' + JSON.stringify(response.error));
-                    } else {
-                        alert('Original photo uploaded successfully! Post ID: ' + response.id);
-                        setProfilePicture(response.id);
-                    }
-                }
-            );
+                })
+                .catch(error => {
+                    alert('Network error during upload: ' + error.message);
+                });
         }
 
         // Set the uploaded photo as profile picture
