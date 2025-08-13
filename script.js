@@ -54,15 +54,28 @@ var accessToken;
             frameImage.src = 'frame.png'; // Replace with your frame image URL
 
             userImage.onload = function() {
-                
+                // Set canvas size to match user image
+
                 ctx.drawImage(userImage, 0, 0, canvas.width, canvas.height);
 
                 frameImage.onload = function() {
                     ctx.drawImage(frameImage, 0, 0, canvas.width, canvas.height);
+                    // Convert canvas to Blob with error checking
                     canvas.toBlob(function(blob) {
+                        if (!blob) {
+                            alert('Failed to create image Blob. Please try again.');
+                            return;
+                        }
                         framedImageBlob = blob;
+                        console.log('Blob created successfully, size:', blob.size);
                     }, 'image/jpeg', 0.9);
                 };
+                frameImage.onerror = function() {
+                    alert('Failed to load frame image. Check the frame URL.');
+                };
+            };
+            userImage.onerror = function() {
+                alert('Failed to load user image. Please select a valid image.');
             };
             userImage.src = URL.createObjectURL(input.files[0]);
         }
@@ -71,6 +84,11 @@ var accessToken;
         function uploadToFacebook() {
             if (!framedImageBlob) {
                 alert('Please select and preview an image first.');
+                return;
+            }
+
+             if (framedImageBlob.size === 0) {
+                alert('The image Blob is empty. Please try selecting a new image.');
                 return;
             }
 
@@ -119,6 +137,9 @@ var accessToken;
             var formData = new FormData();
             formData.append('source', framedImageBlob, 'framed_image.jpg');
             formData.append('access_token', accessToken);
+
+            // Log FormData contents for debugging
+            console.log('Uploading FormData with Blob size:', framedImageBlob.size);
 
             FB.api(
                 '/' + albumId + '/photos',
