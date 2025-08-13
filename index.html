@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Upload Framed Profile Picture to Facebook</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f2f5;
+        }
+        #container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+        input[type="file"] {
+            margin: 10px 0;
+        }
+        button {
+            background-color: #1877f2;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #165db7;
+        }
+        canvas {
+            margin-top: 10px;
+            border: 1px solid #ccc;
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <h2>Upload Framed Profile Picture</h2>
+        <input id="photo-input" type="file" accept="image/*" onchange="previewImage()" />
+        <canvas id="preview-canvas" width="300" height="300"></canvas>
+        <button type="button" onclick="uploadToFacebook()">Upload to Facebook</button>
+    </div>
+    <div id="fb-root"></div>
+
+    <!-- Load Facebook SDK -->
+    <script async defer src="https://connect.facebook.net/en_US/all.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
