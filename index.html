@@ -43,9 +43,10 @@
 <body>
     <div id="container">
         <h2>Upload Framed Profile Picture</h2>
-        <input id="photo-input" type="file" accept="image/*" onchange="previewImage()" />
+        <input id="photo-input" type="file" accept="image/jpeg,image/png" onchange="previewImage()" />
         <canvas id="preview-canvas" width="300" height="300"></canvas>
         <button type="button" onclick="uploadToFacebook()">Upload to Facebook</button>
+        <button type="button" onclick="uploadOriginalFile()">Upload Original (No Frame)</button>
     </div>
     <div id="fb-root"></div>
 
