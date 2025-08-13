@@ -261,7 +261,7 @@
         }
 
         // Upload original photo (no frame) for testing
-        function uploadOriginalFile(albumId, file) {
+        function uploadPhotoOriginal(albumId, file) {
             var formData = new FormData();
             formData.append('source', file, 'original_image.jpg');
             formData.append('access_token', accessToken);
