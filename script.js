@@ -3,7 +3,7 @@ var accessToken;
     // Initialize Facebook SDK
     window.fbAsyncInit = function() {
         FB.init({
-            appId: 'YOUR_APP_ID', // Replace with your App ID
+            appId: '347408025324115', // Replace with your App ID
             status: true,
             cookie: true,
             oauth: true,
