@@ -84,7 +84,7 @@
 
             const userImage = new Image();
             const frameImage = new Image();
-            frameImage.src = 'path/to/your/frame.png'; // Replace with your frame image URL
+            frameImage.src = 'frame.png'; // Replace with your frame image URL
 
             userImage.onload = function() {
                 // Resize canvas to a reasonable size to avoid large files
@@ -261,7 +261,7 @@
         }
 
         // Upload original photo (no frame) for testing
-        function upload，原(albumId, file) {
+        function uploadOriginalFile(albumId, file) {
             var formData = new FormData();
             formData.append('source', file, 'original_image.jpg');
             formData.append('access_token', accessToken);
