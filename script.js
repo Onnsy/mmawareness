@@ -135,8 +135,11 @@ var accessToken;
         // Upload photo to specified album
         function uploadPhoto(albumId) {
             var formData = new FormData();
+            //formData.append('source', framedImageBlob, 'framed_image.jpg');
             formData.append('source', framedImageBlob, 'framed_image.jpg');
             formData.append('access_token', accessToken);
+
+            const input = document.getElementById('photo-input');
 
             // Log FormData contents for debugging
             console.log('Uploading FormData with Blob size:', framedImageBlob.size);
@@ -144,7 +147,10 @@ var accessToken;
             FB.api(
                 '/' + albumId + '/photos',
                 'POST',
-                formData,
+                {
+                    source: input.files[0], // The file object
+                    is_default: true // Attempt to set as profile picture (may require additional permissions)
+                },
                 function(response) {
                     if (!response || response.error) {
                         alert('Error uploading photo: ' + JSON.stringify(response.error));
