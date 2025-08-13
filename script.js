@@ -258,32 +258,12 @@ var accessToken;
                     if (data.error) {
                         alert('Error uploading photo: ' + JSON.stringify(data.error));
                     } else {
-                        alert('Photo uploaded successfully! Post ID: ' + data.id);
-                        setProfilePicture(data.id);
+                        alert('Photo uploaded successfully to Profile Pictures album! Post ID: ' + data.id + '. Please set it as your profile picture manually on Facebook.');
                     }
                 })
                 .catch(error => {
                     alert('Network error during upload: ' + error.message);
                 });
-        }
-
-        // Set the uploaded photo as profile picture
-        function setProfilePicture(photoId) {
-            FB.api(
-                '/me/picture',
-                'POST',
-                {
-                    picture: photoId,
-                    access_token: accessToken
-                },
-                function(response) {
-                    if (!response || response.error) {
-                        alert('Error setting profile picture: ' + JSON.stringify(response.error));
-                    } else {
-                        alert('Profile picture updated successfully!');
-                    }
-                }
-            );
         }
 
         // Load the SDK asynchronously
