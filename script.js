@@ -1,33 +1,41 @@
-
-    var accessToken;
-    var framedImageBlob;
+var accessToken;
 
     // Initialize Facebook SDK
     window.fbAsyncInit = function() {
         FB.init({
-            appId: '3977326002532530', // Replace with your App ID
+            appId: 'YOUR_APP_ID', // Replace with your App ID
             status: true,
             cookie: true,
             oauth: true,
-            xfbml: true
+            xfbml: true,
+            version: 'v20.0' // Use the latest Graph API version
         });
 
+        // Check login status
+        checkLoginStatus();
+    };
+
+    // Function to check login status and handle login
+    function checkLoginStatus(callback) {
         FB.getLoginStatus(function(response) {
             if (response.status === 'connected') {
                 accessToken = response.authResponse.accessToken;
-                console.log('User is logged in');
+                console.log('User is logged in with access token:', accessToken);
+                if (callback) callback(); // Proceed with the callback if provided
             } else {
+                // Prompt user to log in
                 FB.login(function(response) {
                     if (response.status === 'connected') {
                         accessToken = response.authResponse.accessToken;
                         console.log('User logged in successfully');
+                        if (callback) callback();
                     } else {
-                        alert('Login failed or was canceled.');
+                        alert('Login failed or was canceled. Please log in to continue.');
                     }
-                }, { scope: 'user_photos,publish_to_groups' });
+                }, { scope: 'user_photos,publish_to_groups', auth_type: 'reauthenticate' });
             }
         });
-    };
+    }
 
     // Preview image with frame
     function previewImage() {
@@ -45,18 +53,12 @@
         frameImage.src = 'frame.png'; // Replace with your frame image URL
 
         userImage.onload = function() {
-            // Resize canvas to match user image or frame (adjust as needed)
-            /*canvas.width = userImage.width;
-            canvas.height = userImage.height;*/
-
-            // Draw user image
+            //canvas.width = userImage.width;
+            //canvas.height = userImage.height;
             ctx.drawImage(userImage, 0, 0, canvas.width, canvas.height);
 
-            // Draw frame on top
             frameImage.onload = function() {
                 ctx.drawImage(frameImage, 0, 0, canvas.width, canvas.height);
-
-                // Save the framed image as a Blob
                 canvas.toBlob(function(blob) {
                     framedImageBlob = blob;
                 }, 'image/jpeg', 0.9);
@@ -72,35 +74,41 @@
             return;
         }
 
-        // Get user's albums
-        FB.api('/me/albums', function(response) {
-            if (response && !response.error) {
-                var album = response.data.find(album => album.name === 'Profile Pictures') || response.data[0];
-                var albumId = album.id;
-
-                // Create FormData for upload
-                var formData = new FormData();
-                formData.append('source', framedImageBlob, 'framed_image.jpg');
-                formData.append('access_token', accessToken);
-
-                // Upload to album
-                FB.api(
-                    '/' + albumId + '/photos',
-                    'POST',
-                    formData,
-                    function(response) {
-                        if (!response || response.error) {
-                            alert('Error uploading photo: ' + JSON.stringify(response.error));
-                        } else {
-                            alert('Photo uploaded successfully! Post ID: ' + response.id);
-                            // Optionally set as profile picture
-                            setProfilePicture(response.id);
-                        }
+        // Ensure user is logged in before proceeding
+        checkLoginStatus(function() {
+            // Fetch albums
+            FB.api('/me/albums', 'GET', { access_token: accessToken }, function(response) {
+                if (response && !response.error) {
+                    var album = response.data.find(album => album.name === 'Profile Pictures') || response.data[0];
+                    if (!album) {
+                        alert('No suitable album found. Please create a Profile Pictures album.');
+                        return;
                     }
-                );
-            } else {
-                alert('Error fetching albums: ' + JSON.stringify(response.error));
-            }
+                    var albumId = album.id;
+
+                    // Create FormData for upload
+                    var formData = new FormData();
+                    formData.append('source', framedImageBlob, 'framed_image.jpg');
+                    formData.append('access_token', accessToken);
+
+                    // Upload to album
+                    FB.api(
+                        '/' + albumId + '/photos',
+                        'POST',
+                        formData,
+                        function(response) {
+                            if (!response || response.error) {
+                                alert('Error uploading photo: ' + JSON.stringify(response.error));
+                            } else {
+                                alert('Photo uploaded successfully! Post ID: ' + response.id);
+                                setProfilePicture(response.id);
+                            }
+                        }
+                    );
+                } else {
+                    alert('Error fetching albums: ' + JSON.stringify(response.error));
+                }
+            });
         });
     }
 
@@ -111,7 +119,7 @@
             'POST',
             {
                 picture: photoId,
-                is_default: true
+                access_token: accessToken
             },
             function(response) {
                 if (!response || response.error) {
@@ -122,3 +130,12 @@
             }
         );
     }
+
+    // Load the SDK asynchronously
+    (function(d, s, id) {
+        var js, fjs = d.getElementsByTagName(s)[0];
+        if (d.getElementById(id)) return;
+        js = d.createElement(s); js.id = id;
+        js.src = "https://connect.facebook.net/en_US/sdk.js";
+        fjs.parentNode.insertBefore(js, fjs);
+    }(document, 'script', 'facebook-jssdk'));
