@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Responsive Image Upload with Frame</title>
+    <title>Responsive Image Upload with Adjustable Frame</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
         body {
@@ -10,7 +10,7 @@
             display: flex;
             justify-content: center; /* Center horizontally */
             align-items: center; /* Center vertically */
-            min-height: 100vh; /* Ensure body takes full viewport height */
+            min-height: 100vh; /* Full viewport height */
             background-color: #e6f3ff; /* Light blue background */
             font-family: Arial, sans-serif;
         }
@@ -21,12 +21,16 @@
             border: 2px solid #333; /* Border around content */
             padding: 15px; /* Space inside border */
             background-color: #fff; /* White background for content */
-            border-radius: 10px; /* Optional: rounded corners */
+            border-radius: 10px; /* Rounded corners */
         }
-        #fileInput, #uploadBtn, #downloadBtn {
+        #fileInput, #uploadBtn, #downloadBtn, .adjust-btn {
             margin: 5px;
             padding: 8px;
             font-size: 16px;
+        }
+        .adjust-btn {
+            width: 60px;
+            cursor: pointer;
         }
         #fileFrame {
             width: 100%;
@@ -36,15 +40,19 @@
             max-height: 400px;
             border: 1px solid #ccc;
             display: block;
+            overflow: hidden; /* Disable scrolling */
         }
         @media (max-width: 500px) {
-            #fileInput, #uploadBtn, #downloadBtn {
+            #fileInput, #uploadBtn, #downloadBtn, .adjust-btn {
                 width: 100%;
                 box-sizing: border-box;
                 font-size: 14px;
             }
             .container {
-                padding: 10px; /* Slightly less padding on mobile */
+                padding: 10px; /* Less padding on mobile */
+            }
+            .adjust-btn {
+                width: 25%; /* Stack buttons on mobile */
             }
         }
     </style>
@@ -55,16 +63,29 @@
         <button id="uploadBtn" onclick="uploadFile()">Upload</button>
         <button id="downloadBtn" onclick="downloadFile()" disabled>Download</button>
         <br><br>
-        <iframe id="fileFrame"></iframe>
+        <div>
+            <button class="adjust-btn" onclick="adjustPosition(0, -10)" disabled id="upBtn">Up</button>
+            <button class="adjust-btn" onclick="adjustPosition(0, 10)" disabled id="downBtn">Down</button>
+            <button class="adjust-btn" onclick="adjustPosition(-10, 0)" disabled id="leftBtn">Left</button>
+            <button class="adjust-btn" onclick="adjustPosition(10, 0)" disabled id="rightBtn">Right</button>
+        </div>
+        <br>
+        <iframe id="fileFrame" scrolling="no"></iframe>
         <canvas id="canvas" style="display:none;"></canvas>
     </div>
 
     <script>
         let fileData = null;
         let fileName = 'framed_image.png';
+        let userImage = null;
+        let offsetX = 0;
+        let offsetY = 0;
+        let scaledWidth = 0;
+        let scaledHeight = 0;
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
         const CANVAS_SIZE = 400; // Fixed size for canvas (400x400)
+        const MOVE_STEP = 10; // Pixels to move per button click
 
         // Load and display frame.png in iframe on page load
         window.onload = function() {
@@ -103,39 +124,35 @@
 
             const reader = new FileReader();
             reader.onload = function(e) {
-                const userImage = new Image();
+                userImage = new Image();
                 userImage.onload = function() {
                     // Load the frame image
                     const frameImage = new Image();
                     frameImage.src = 'frame.png';
                     frameImage.onload = function() {
-                        // Set canvas size to 400x400
-                        canvas.width = CANVAS_SIZE;
-                        canvas.height = CANVAS_SIZE;
+                        // Reset offsets
+                        offsetX = 0;
+                        offsetY = 0;
 
                         // Calculate scaling to fit user image within 400x400
                         const scale = Math.min(
                             CANVAS_SIZE / userImage.width,
                             CANVAS_SIZE / userImage.height
                         );
-                        const scaledWidth = userImage.width * scale;
-                        const scaledHeight = userImage.height * scale;
-                        const offsetX = (CANVAS_SIZE - scaledWidth) / 2;
-                        const offsetY = (CANVAS_SIZE - scaledHeight) / 2;
+                        scaledWidth = userImage.width * scale;
+                        scaledHeight = userImage.height * scale;
+                        offsetX = (CANVAS_SIZE - scaledWidth) / 2;
+                        offsetY = (CANVAS_SIZE - scaledHeight) / 2;
 
-                        // Clear canvas and draw user image
-                        ctx.clearRect(0, 0, canvas.width, canvas.height);
-                        ctx.drawImage(userImage, offsetX, offsetY, scaledWidth, scaledHeight);
-                        // Draw frame on top, scaled to 400x400
-                        ctx.drawImage(frameImage, 0, 0, CANVAS_SIZE, CANVAS_SIZE);
+                        // Draw image with initial position
+                        drawCanvas(frameImage);
 
-                        // Convert canvas to data URL and display in iframe
-                        fileData = canvas.toDataURL('image/png');
-                        const frame = document.getElementById('fileFrame');
-                        frame.src = fileData;
-
-                        // Enable download button
+                        // Enable buttons
                         document.getElementById('downloadBtn').disabled = false;
+                        document.getElementById('upBtn').disabled = false;
+                        document.getElementById('downBtn').disabled = false;
+                        document.getElementById('leftBtn').disabled = false;
+                        document.getElementById('rightBtn').disabled = false;
                     };
                     frameImage.onerror = function() {
                         alert('Error loading frame.png. Ensure it exists in the same directory.');
@@ -144,6 +161,44 @@
                 userImage.src = e.target.result;
             };
             reader.readAsDataURL(file);
+        }
+
+        function adjustPosition(dx, dy) {
+            if (!userImage) return;
+
+            // Update offsets
+            offsetX += dx;
+            offsetY += dy;
+
+            // Optional: Constrain offsets to keep image partially visible
+            const maxOffsetX = CANVAS_SIZE / 2;
+            const maxOffsetY = CANVAS_SIZE / 2;
+            offsetX = Math.max(-maxOffsetX, Math.min(maxOffsetX, offsetX));
+            offsetY = Math.max(-maxOffsetY, Math.min(maxOffsetY, offsetY));
+
+            // Redraw canvas with updated position
+            const frameImage = new Image();
+            frameImage.src = 'frame.png';
+            frameImage.onload = function() {
+                drawCanvas(frameImage);
+            };
+        }
+
+        function drawCanvas(frameImage) {
+            // Set canvas size to 400x400
+            canvas.width = CANVAS_SIZE;
+            canvas.height = CANVAS_SIZE;
+
+            // Clear canvas and draw user image at updated position
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(userImage, offsetX, offsetY, scaledWidth, scaledHeight);
+            // Draw frame on top, scaled to 400x400
+            ctx.drawImage(frameImage, 0, 0, CANVAS_SIZE, CANVAS_SIZE);
+
+            // Update iframe
+            fileData = canvas.toDataURL('image/png');
+            const frame = document.getElementById('fileFrame');
+            frame.src = fileData;
         }
 
         function downloadFile() {
@@ -156,6 +211,4 @@
             link.click();
             document.body.removeChild(link);
         }
-    </script>
-</body>
-</html>
+    </script
