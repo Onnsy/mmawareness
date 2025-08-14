@@ -1,15 +1,63 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Image Upload with 400x400 Frame</title>
+    <title>Responsive Image Upload with Frame</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {
+            margin: 0;
+            padding: 10px;
+            display: flex;
+            justify-content: center; /* Center horizontally */
+            align-items: center; /* Center vertically */
+            min-height: 100vh; /* Ensure body takes full viewport height */
+            background-color: #e6f3ff; /* Light blue background */
+            font-family: Arial, sans-serif;
+        }
+        .container {
+            width: 100%;
+            max-width: 400px; /* Match canvas size */
+            text-align: center;
+            border: 2px solid #333; /* Border around content */
+            padding: 15px; /* Space inside border */
+            background-color: #fff; /* White background for content */
+            border-radius: 10px; /* Optional: rounded corners */
+        }
+        #fileInput, #uploadBtn, #downloadBtn {
+            margin: 5px;
+            padding: 8px;
+            font-size: 16px;
+        }
+        #fileFrame {
+            width: 100%;
+            height: auto;
+            aspect-ratio: 1/1; /* Maintain 1:1 aspect ratio */
+            max-width: 400px; /* Match canvas size */
+            max-height: 400px;
+            border: 1px solid #ccc;
+            display: block;
+        }
+        @media (max-width: 500px) {
+            #fileInput, #uploadBtn, #downloadBtn {
+                width: 100%;
+                box-sizing: border-box;
+                font-size: 14px;
+            }
+            .container {
+                padding: 10px; /* Slightly less padding on mobile */
+            }
+        }
+    </style>
 </head>
 <body>
-    <input type="file" id="fileInput" accept="image/*">
-    <button onclick="uploadFile()">Upload</button>
-    <button onclick="downloadFile()" id="downloadBtn" disabled>Download</button>
-    <br><br>
-    <iframe id="fileFrame" style="width:400px;height:400px;border:1px solid #ccc;"></iframe>
-    <canvas id="canvas" style="display:none;"></canvas>
+    <div class="container">
+        <input type="file" id="fileInput" accept="image/*">
+        <button id="uploadBtn" onclick="uploadFile()">Upload</button>
+        <button id="downloadBtn" onclick="downloadFile()" disabled>Download</button>
+        <br><br>
+        <iframe id="fileFrame"></iframe>
+        <canvas id="canvas" style="display:none;"></canvas>
+    </div>
 
     <script>
         let fileData = null;
