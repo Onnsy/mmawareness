@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Responsive Image Upload with Adjustable Frame</title>
+    <title>Responsive Image Upload with Draggable Frame</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
         body {
@@ -23,14 +23,10 @@
             background-color: #fff; /* White background for content */
             border-radius: 10px; /* Rounded corners */
         }
-        #fileInput, #uploadBtn, #downloadBtn, .adjust-btn {
+        #fileInput, #uploadBtn, #downloadBtn {
             margin: 5px;
             padding: 8px;
             font-size: 16px;
-        }
-        .adjust-btn {
-            width: 60px;
-            cursor: pointer;
         }
         #fileFrame {
             width: 100%;
@@ -41,18 +37,17 @@
             border: 1px solid #ccc;
             display: block;
             overflow: hidden; /* Disable scrolling */
+            touch-action: none; /* Prevent default touch scrolling */
+            cursor: move; /* Indicate draggability */
         }
         @media (max-width: 500px) {
-            #fileInput, #uploadBtn, #downloadBtn, .adjust-btn {
+            #fileInput, #uploadBtn, #downloadBtn {
                 width: 100%;
                 box-sizing: border-box;
                 font-size: 14px;
             }
             .container {
                 padding: 10px; /* Less padding on mobile */
-            }
-            .adjust-btn {
-                width: 25%; /* Stack buttons on mobile */
             }
         }
     </style>
@@ -63,13 +58,6 @@
         <button id="uploadBtn" onclick="uploadFile()">Upload</button>
         <button id="downloadBtn" onclick="downloadFile()" disabled>Download</button>
         <br><br>
-        <div>
-            <button class="adjust-btn" onclick="adjustPosition(0, -10)" disabled id="upBtn">Up</button>
-            <button class="adjust-btn" onclick="adjustPosition(0, 10)" disabled id="downBtn">Down</button>
-            <button class="adjust-btn" onclick="adjustPosition(-10, 0)" disabled id="leftBtn">Left</button>
-            <button class="adjust-btn" onclick="adjustPosition(10, 0)" disabled id="rightBtn">Right</button>
-        </div>
-        <br>
         <iframe id="fileFrame" scrolling="no"></iframe>
         <canvas id="canvas" style="display:none;"></canvas>
     </div>
@@ -82,27 +70,24 @@
         let offsetY = 0;
         let scaledWidth = 0;
         let scaledHeight = 0;
+        let isDragging = false;
+        let startX = 0;
+        let startY = 0;
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
+        const iframe = document.getElementById('fileFrame');
         const CANVAS_SIZE = 400; // Fixed size for canvas (400x400)
-        const MOVE_STEP = 10; // Pixels to move per button click
 
         // Load and display frame.png in iframe on page load
         window.onload = function() {
             const frameImage = new Image();
             frameImage.src = 'frame.png'; // Ensure frame.png is in the same directory
             frameImage.onload = function() {
-                // Set canvas size to 400x400
                 canvas.width = CANVAS_SIZE;
                 canvas.height = CANVAS_SIZE;
-
-                // Clear canvas and draw frame scaled to 400x400
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
                 ctx.drawImage(frameImage, 0, 0, CANVAS_SIZE, CANVAS_SIZE);
-
-                // Display frame in iframe
-                const frame = document.getElementById('fileFrame');
-                frame.src = canvas.toDataURL('image/png');
+                iframe.src = canvas.toDataURL('image/png');
             };
             frameImage.onerror = function() {
                 alert('Error loading frame.png. Ensure it exists in the same directory.');
@@ -116,7 +101,6 @@
                 alert('Please select an image');
                 return;
             }
-
             if (!file.type.startsWith('image/')) {
                 alert('Please upload an image file');
                 return;
@@ -126,7 +110,6 @@
             reader.onload = function(e) {
                 userImage = new Image();
                 userImage.onload = function() {
-                    // Load the frame image
                     const frameImage = new Image();
                     frameImage.src = 'frame.png';
                     frameImage.onload = function() {
@@ -134,7 +117,7 @@
                         offsetX = 0;
                         offsetY = 0;
 
-                        // Calculate scaling to fit shortest side to 400x400
+                        // Scale image to fit shortest side to 400x400
                         const scale = Math.max(
                             CANVAS_SIZE / userImage.width,
                             CANVAS_SIZE / userImage.height
@@ -144,15 +127,8 @@
                         offsetX = (CANVAS_SIZE - scaledWidth) / 2;
                         offsetY = (CANVAS_SIZE - scaledHeight) / 2;
 
-                        // Draw image with initial position
                         drawCanvas(frameImage);
-
-                        // Enable buttons
                         document.getElementById('downloadBtn').disabled = false;
-                        document.getElementById('upBtn').disabled = false;
-                        document.getElementById('downBtn').disabled = false;
-                        document.getElementById('leftBtn').disabled = false;
-                        document.getElementById('rightBtn').disabled = false;
                     };
                     frameImage.onerror = function() {
                         alert('Error loading frame.png. Ensure it exists in the same directory.');
@@ -163,47 +139,85 @@
             reader.readAsDataURL(file);
         }
 
-        function adjustPosition(dx, dy) {
+        function drawCanvas(frameImage) {
+            canvas.width = CANVAS_SIZE;
+            canvas.height = CANVAS_SIZE;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            if (userImage) {
+                ctx.drawImage(userImage, offsetX, offsetY, scaledWidth, scaledHeight);
+            }
+            ctx.drawImage(frameImage, 0, 0, CANVAS_SIZE, CANVAS_SIZE);
+            fileData = canvas.toDataURL('image/png');
+            iframe.src = fileData;
+        }
+
+        function startDragging(clientX, clientY) {
             if (!userImage) return;
+            isDragging = true;
+            startX = clientX;
+            startY = clientY;
+        }
+
+        function drag(clientX, clientY) {
+            if (!isDragging || !userImage) return;
+
+            // Calculate movement relative to iframe size
+            const rect = iframe.getBoundingClientRect();
+            const scaleFactor = CANVAS_SIZE / rect.width; // Adjust for iframe scaling
+            const dx = (clientX - startX) * scaleFactor;
+            const dy = (clientY - startY) * scaleFactor;
 
             // Update offsets
             offsetX += dx;
             offsetY += dy;
 
-            // Constrain offsets to keep image partially visible
+            // Constrain offsets
             const maxOffsetX = Math.abs(scaledWidth - CANVAS_SIZE) / 2 + CANVAS_SIZE / 4;
             const maxOffsetY = Math.abs(scaledHeight - CANVAS_SIZE) / 2 + CANVAS_SIZE / 4;
             offsetX = Math.max(-maxOffsetX, Math.min(maxOffsetX, offsetX));
             offsetY = Math.max(-maxOffsetY, Math.min(maxOffsetY, offsetY));
 
-            // Redraw canvas with updated position
+            // Redraw canvas
             const frameImage = new Image();
             frameImage.src = 'frame.png';
             frameImage.onload = function() {
                 drawCanvas(frameImage);
             };
+
+            startX = clientX;
+            startY = clientY;
         }
 
-        function drawCanvas(frameImage) {
-            // Set canvas size to 400x400
-            canvas.width = CANVAS_SIZE;
-            canvas.height = CANVAS_SIZE;
-
-            // Clear canvas and draw user image at updated position
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.drawImage(userImage, offsetX, offsetY, scaledWidth, scaledHeight);
-            // Draw frame on top, scaled to 400x400
-            ctx.drawImage(frameImage, 0, 0, CANVAS_SIZE, CANVAS_SIZE);
-
-            // Update iframe
-            fileData = canvas.toDataURL('image/png');
-            const frame = document.getElementById('fileFrame');
-            frame.src = fileData;
+        function stopDragging() {
+            isDragging = false;
         }
+
+        // Mouse events
+        iframe.addEventListener('mousedown', (e) => {
+            e.preventDefault();
+            startDragging(e.clientX, e.clientY);
+        });
+        iframe.addEventListener('mousemove', (e) => {
+            drag(e.clientX, e.clientY);
+        });
+        iframe.addEventListener('mouseup', stopDragging);
+        iframe.addEventListener('mouseleave', stopDragging);
+
+        // Touch events
+        iframe.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            const touch = e.touches[0];
+            startDragging(touch.clientX, touch.clientY);
+        });
+        iframe.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            const touch = e.touches[0];
+            drag(touch.clientX, touch.clientY);
+        });
+        iframe.addEventListener('touchend', stopDragging);
 
         function downloadFile() {
             if (!fileData) return;
-
             const link = document.createElement('a');
             link.href = fileData;
             link.download = fileName;
