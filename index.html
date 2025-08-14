@@ -134,8 +134,8 @@
                         offsetX = 0;
                         offsetY = 0;
 
-                        // Calculate scaling to fit user image within 400x400
-                        const scale = Math.min(
+                        // Calculate scaling to fit shortest side to 400x400
+                        const scale = Math.max(
                             CANVAS_SIZE / userImage.width,
                             CANVAS_SIZE / userImage.height
                         );
@@ -170,9 +170,9 @@
             offsetX += dx;
             offsetY += dy;
 
-            // Optional: Constrain offsets to keep image partially visible
-            const maxOffsetX = CANVAS_SIZE / 2;
-            const maxOffsetY = CANVAS_SIZE / 2;
+            // Constrain offsets to keep image partially visible
+            const maxOffsetX = Math.abs(scaledWidth - CANVAS_SIZE) / 2 + CANVAS_SIZE / 4;
+            const maxOffsetY = Math.abs(scaledHeight - CANVAS_SIZE) / 2 + CANVAS_SIZE / 4;
             offsetX = Math.max(-maxOffsetX, Math.min(maxOffsetX, offsetX));
             offsetY = Math.max(-maxOffsetY, Math.min(maxOffsetY, offsetY));
 
