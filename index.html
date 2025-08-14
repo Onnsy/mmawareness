@@ -1,14 +1,14 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Image Upload with Frame</title>
+    <title>Image Upload with 400x400 Frame</title>
 </head>
 <body>
     <input type="file" id="fileInput" accept="image/*">
     <button onclick="uploadFile()">Upload</button>
     <button onclick="downloadFile()" id="downloadBtn" disabled>Download</button>
     <br><br>
-    <iframe id="fileFrame" style="width:100%;height:400px;"></iframe>
+    <iframe id="fileFrame" style="width:400px;height:400px;border:1px solid #ccc;"></iframe>
     <canvas id="canvas" style="display:none;"></canvas>
 
     <script>
@@ -16,12 +16,35 @@
         let fileName = 'framed_image.png';
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
+        const CANVAS_SIZE = 400; // Fixed size for canvas (400x400)
+
+        // Load and display frame.png in iframe on page load
+        window.onload = function() {
+            const frameImage = new Image();
+            frameImage.src = 'frame.png'; // Ensure frame.png is in the same directory
+            frameImage.onload = function() {
+                // Set canvas size to 400x400
+                canvas.width = CANVAS_SIZE;
+                canvas.height = CANVAS_SIZE;
+
+                // Clear canvas and draw frame scaled to 400x400
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.drawImage(frameImage, 0, 0, CANVAS_SIZE, CANVAS_SIZE);
+
+                // Display frame in iframe
+                const frame = document.getElementById('fileFrame');
+                frame.src = canvas.toDataURL('image/png');
+            };
+            frameImage.onerror = function() {
+                alert('Error loading frame.png. Ensure it exists in the same directory.');
+            };
+        };
 
         function uploadFile() {
             const fileInput = document.getElementById('fileInput');
             const file = fileInput.files[0];
             if (!file) {
-                alert('Please select a file');
+                alert('Please select an image');
                 return;
             }
 
@@ -36,27 +59,27 @@
                 userImage.onload = function() {
                     // Load the frame image
                     const frameImage = new Image();
-                    frameImage.src = 'frame.png'; // Ensure frame.png is in the same directory
+                    frameImage.src = 'frame.png';
                     frameImage.onload = function() {
-                        // Set canvas size to match frame
-                        canvas.width = frameImage.width;
-                        canvas.height = frameImage.height;
+                        // Set canvas size to 400x400
+                        canvas.width = CANVAS_SIZE;
+                        canvas.height = CANVAS_SIZE;
 
-                        // Calculate scaling to fit user image within frame
+                        // Calculate scaling to fit user image within 400x400
                         const scale = Math.min(
-                            frameImage.width / userImage.width,
-                            frameImage.height / userImage.height
+                            CANVAS_SIZE / userImage.width,
+                            CANVAS_SIZE / userImage.height
                         );
                         const scaledWidth = userImage.width * scale;
                         const scaledHeight = userImage.height * scale;
-                        const offsetX = (frameImage.width - scaledWidth) / 2;
-                        const offsetY = (frameImage.height - scaledHeight) / 2;
+                        const offsetX = (CANVAS_SIZE - scaledWidth) / 2;
+                        const offsetY = (CANVAS_SIZE - scaledHeight) / 2;
 
                         // Clear canvas and draw user image
                         ctx.clearRect(0, 0, canvas.width, canvas.height);
                         ctx.drawImage(userImage, offsetX, offsetY, scaledWidth, scaledHeight);
-                        // Draw frame on top
-                        ctx.drawImage(frameImage, 0, 0);
+                        // Draw frame on top, scaled to 400x400
+                        ctx.drawImage(frameImage, 0, 0, CANVAS_SIZE, CANVAS_SIZE);
 
                         // Convert canvas to data URL and display in iframe
                         fileData = canvas.toDataURL('image/png');
