@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Responsive Image Upload with Draggable Frame</title>
+    <title>Responsive Image Upload with Draggable Canvas</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
         body {
@@ -28,7 +28,7 @@
             padding: 8px;
             font-size: 16px;
         }
-        #fileFrame {
+        #canvas {
             width: 100%;
             height: auto;
             aspect-ratio: 1/1; /* Maintain 1:1 aspect ratio */
@@ -36,7 +36,6 @@
             max-height: 400px;
             border: 1px solid #ccc;
             display: block;
-            overflow: hidden; /* Disable scrolling */
             touch-action: none; /* Prevent default touch scrolling */
             cursor: move; /* Indicate draggability */
         }
@@ -58,8 +57,7 @@
         <button id="uploadBtn" onclick="uploadFile()">Upload</button>
         <button id="downloadBtn" onclick="downloadFile()" disabled>Download</button>
         <br><br>
-        <iframe id="fileFrame" scrolling="no"></iframe>
-        <canvas id="canvas" style="display:none;"></canvas>
+        <canvas id="canvas"></canvas>
     </div>
 
     <script>
@@ -75,19 +73,17 @@
         let startY = 0;
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
-        const iframe = document.getElementById('fileFrame');
         const CANVAS_SIZE = 400; // Fixed size for canvas (400x400)
 
-        // Load and display frame.png in iframe on page load
+        // Load and display frame.png on canvas on page load
         window.onload = function() {
+            canvas.width = CANVAS_SIZE;
+            canvas.height = CANVAS_SIZE;
             const frameImage = new Image();
             frameImage.src = 'frame.png'; // Ensure frame.png is in the same directory
             frameImage.onload = function() {
-                canvas.width = CANVAS_SIZE;
-                canvas.height = CANVAS_SIZE;
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
                 ctx.drawImage(frameImage, 0, 0, CANVAS_SIZE, CANVAS_SIZE);
-                iframe.src = canvas.toDataURL('image/png');
             };
             frameImage.onerror = function() {
                 alert('Error loading frame.png. Ensure it exists in the same directory.');
@@ -148,7 +144,6 @@
             }
             ctx.drawImage(frameImage, 0, 0, CANVAS_SIZE, CANVAS_SIZE);
             fileData = canvas.toDataURL('image/png');
-            iframe.src = fileData;
         }
 
         function startDragging(clientX, clientY) {
@@ -161,9 +156,9 @@
         function drag(clientX, clientY) {
             if (!isDragging || !userImage) return;
 
-            // Calculate movement relative to iframe size
-            const rect = iframe.getBoundingClientRect();
-            const scaleFactor = CANVAS_SIZE / rect.width; // Adjust for iframe scaling
+            // Calculate movement relative to canvas size
+            const rect = canvas.getBoundingClientRect();
+            const scaleFactor = CANVAS_SIZE / rect.width; // Adjust for canvas scaling
             const dx = (clientX - startX) * scaleFactor;
             const dy = (clientY - startY) * scaleFactor;
 
@@ -193,28 +188,28 @@
         }
 
         // Mouse events
-        iframe.addEventListener('mousedown', (e) => {
+        canvas.addEventListener('mousedown', (e) => {
             e.preventDefault();
             startDragging(e.clientX, e.clientY);
         });
-        iframe.addEventListener('mousemove', (e) => {
+        canvas.addEventListener('mousemove', (e) => {
             drag(e.clientX, e.clientY);
         });
-        iframe.addEventListener('mouseup', stopDragging);
-        iframe.addEventListener('mouseleave', stopDragging);
+        canvas.addEventListener('mouseup', stopDragging);
+        canvas.addEventListener('mouseleave', stopDragging);
 
         // Touch events
-        iframe.addEventListener('touchstart', (e) => {
+        canvas.addEventListener('touchstart', (e) => {
             e.preventDefault();
             const touch = e.touches[0];
             startDragging(touch.clientX, touch.clientY);
         });
-        iframe.addEventListener('touchmove', (e) => {
+        canvas.addEventListener('touchmove', (e) => {
             e.preventDefault();
             const touch = e.touches[0];
             drag(touch.clientX, touch.clientY);
         });
-        iframe.addEventListener('touchend', stopDragging);
+        canvas.addEventListener('touchend', stopDragging);
 
         function downloadFile() {
             if (!fileData) return;
