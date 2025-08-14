@@ -1,57 +1,90 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="utf-8">
-    <title>Upload Framed Profile Picture to Facebook</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
-            background-color: #f0f2f5;
-        }
-        #container {
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-            text-align: center;
-        }
-        input[type="file"] {
-            margin: 10px 0;
-        }
-        button {
-            background-color: #1877f2;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 5px;
-            cursor: pointer;
-        }
-        button:hover {
-            background-color: #165db7;
-        }
-        canvas {
-            margin-top: 10px;
-            border: 1px solid #ccc;
-        }
-    </style>
+    <title>Image Upload with Frame</title>
 </head>
 <body>
-    <div id="container">
-        <h2>Upload Framed Profile Picture</h2>
-        <input id="photo-input" type="file" accept="image/jpeg,image/png" onchange="previewImage()" />
-        <canvas id="preview-canvas" width="300" height="300"></canvas>
-        <button type="button" onclick="uploadToFacebook()">Upload to Facebook</button>
-        <button type="button" onclick="uploadOriginalFile()">Upload Original (No Frame)</button>
-    </div>
-    <div id="fb-root"></div>
+    <input type="file" id="fileInput" accept="image/*">
+    <button onclick="uploadFile()">Upload</button>
+    <button onclick="downloadFile()" id="downloadBtn" disabled>Download</button>
+    <br><br>
+    <iframe id="fileFrame" style="width:100%;height:400px;"></iframe>
+    <canvas id="canvas" style="display:none;"></canvas>
 
-    <!-- Load Facebook SDK -->
-    <script async defer src="https://connect.facebook.net/en_US/all.js"></script>
-    <script src="script.js"></script>
+    <script>
+        let fileData = null;
+        let fileName = 'framed_image.png';
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+
+        function uploadFile() {
+            const fileInput = document.getElementById('fileInput');
+            const file = fileInput.files[0];
+            if (!file) {
+                alert('Please select a file');
+                return;
+            }
+
+            if (!file.type.startsWith('image/')) {
+                alert('Please upload an image file');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const userImage = new Image();
+                userImage.onload = function() {
+                    // Load the frame image
+                    const frameImage = new Image();
+                    frameImage.src = 'frame.png'; // Ensure frame.png is in the same directory
+                    frameImage.onload = function() {
+                        // Set canvas size to match frame
+                        canvas.width = frameImage.width;
+                        canvas.height = frameImage.height;
+
+                        // Calculate scaling to fit user image within frame
+                        const scale = Math.min(
+                            frameImage.width / userImage.width,
+                            frameImage.height / userImage.height
+                        );
+                        const scaledWidth = userImage.width * scale;
+                        const scaledHeight = userImage.height * scale;
+                        const offsetX = (frameImage.width - scaledWidth) / 2;
+                        const offsetY = (frameImage.height - scaledHeight) / 2;
+
+                        // Clear canvas and draw user image
+                        ctx.clearRect(0, 0, canvas.width, canvas.height);
+                        ctx.drawImage(userImage, offsetX, offsetY, scaledWidth, scaledHeight);
+                        // Draw frame on top
+                        ctx.drawImage(frameImage, 0, 0);
+
+                        // Convert canvas to data URL and display in iframe
+                        fileData = canvas.toDataURL('image/png');
+                        const frame = document.getElementById('fileFrame');
+                        frame.src = fileData;
+
+                        // Enable download button
+                        document.getElementById('downloadBtn').disabled = false;
+                    };
+                    frameImage.onerror = function() {
+                        alert('Error loading frame.png. Ensure it exists in the same directory.');
+                    };
+                };
+                userImage.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function downloadFile() {
+            if (!fileData) return;
+
+            const link = document.createElement('a');
+            link.href = fileData;
+            link.download = fileName;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+    </script>
 </body>
 </html>

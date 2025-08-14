@@ -9,7 +9,7 @@ var accessToken;
                 cookie: true,
                 oauth: true,
                 xfbml: true,
-                version: 'v20.0' // Latest Graph API version
+                version: 'v23.0' // Latest Graph API version
             });
 
             // Check login status
